@@ -1,10 +1,10 @@
 
 
 def main(tag = ""):
-	"""
-	Main loop for training. Make sure to change tag to some different identifier depending on what
-	sort of model or implementation you are running 
-	"""
+    """
+    Main loop for training. Make sure to change tag to some different identifier depending on what
+    sort of model or implementation you are running 
+    """
 
 
     ######### Hyperparameters #########
