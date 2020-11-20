@@ -10,6 +10,7 @@ from PIL import Image
 
 from models import Actor, Critic # or whatever AC variants are made. 
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class ReplayBuffer:
     def __init__(self, max_size=5e5):

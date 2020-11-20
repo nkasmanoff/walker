@@ -11,4 +11,4 @@
 #SBATCH --mail-type=END
 #SBATCH --output=slurm_%j.out
 
-python BipedalWalkerTD3.py
+python train.py
