@@ -8,12 +8,13 @@ import gym
 from PIL import Image
 
 
-from models import Actor, Critic # or whatever AC variants are made. 
+from models import Actor2 as Actor
+from models import Critic2 as Critic # or whatever AC variants are made. 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class ReplayBuffer:
-    def __init__(self, max_size=5e5):
+    def __init__(self, max_size=5e3):
         self.buffer = []
         self.max_size = int(max_size)
         self.size = 0

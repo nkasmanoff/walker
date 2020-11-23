@@ -21,10 +21,10 @@ def main(tag = ""):
     env_name = "BipedalWalkerHardcore-v3"
 
     log_interval = 100           # print avg reward after interval
-    random_seed = 0
+    random_seed = 42
     gamma = 0.99                # discount for future rewards
-    batch_size = 500          # num of transitions sampled from replay buffer
-    lr = 0.000001
+    batch_size = 64          # num of transitions sampled from replay buffer
+    lr = 0.00001
     exploration_noise = 0.1 
     polyak = 0.995              # target policy update parameter (1-tau)
     policy_noise = 0.2          # target policy smoothing noise
@@ -104,5 +104,5 @@ def main(tag = ""):
     print("Done!")
 
 if __name__ == '__main__':
-	main(tag = "v3")
+	main(tag = "v4")
 

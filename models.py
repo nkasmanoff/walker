@@ -61,3 +61,53 @@ class Critic(nn.Module):
         q = F.relu(self.l3(q))
         q = self.l4(q)
         return q
+
+
+
+
+
+class Actor2(nn.Module):
+    def __init__(self, state_dim, action_dim, max_action):
+        super(Actor, self).__init__()
+        
+        self.l1 = nn.Linear(state_dim, 32)
+        self.l2 = nn.Linear(32, 64)
+        self.l3 = nn.Linear(64, 64)
+        self.l4 = nn.Linear(64, action_dim)
+        
+        self.max_action = max_action
+        
+    def forward(self, state):
+        """
+        Pass the state through mlp, and emit a value between -1 and 1, scaled by max action size. 
+        
+        Returns the action to take (along each dim of action dim)
+        """
+        a = F.relu(self.l1(state))
+        a = F.relu(self.l2(a))
+        a = F.relu(self.l3(a))
+        a = torch.tanh(self.l4(a)) * self.max_action
+        return a
+        
+class Critic2(nn.Module):
+    def __init__(self, state_dim, action_dim):
+        super(Critic, self).__init__()
+       
+        self.l1 = nn.Linear(state_dim + action_dim, 32)
+        self.l2 = nn.Linear(32, 64)
+        self.l3 = nn.Linear(64, 64)
+        self.l4 = nn.Linear(64, 1)
+        
+    def forward(self, state, action):
+        """
+        Returns a Q(!) value for the network, given a state action input. The input is concatted and passed through an MLP
+        of roughly the same size as before, but different input dim to account for the action(s) taken. 
+        """
+
+        state_action = torch.cat([state, action], 1)
+        
+        q = F.relu(self.l1(state_action))
+        q = F.relu(self.l2(q))
+        q = F.relu(self.l3(q))
+        q = self.l4(q)
+        return q
