@@ -23,14 +23,14 @@ def main(tag = ""):
     log_interval = 100           # print avg reward after interval
     random_seed = 0
     gamma = 0.99                # discount for future rewards
-    batch_size = 32          # num of transitions sampled from replay buffer
-    lr = 0.0001
+    batch_size = 500          # num of transitions sampled from replay buffer
+    lr = 0.000001
     exploration_noise = 0.1 
     polyak = 0.995              # target policy update parameter (1-tau)
     policy_noise = 0.2          # target policy smoothing noise
     noise_clip = 0.5
     policy_delay = 2            # delayed policy updates parameter
-    max_episodes = 30000         # max num of episodes
+    max_episodes = 50000         # max num of episodes
     max_timesteps = 5000        # max timesteps in one episode
     directory = "preTrained/" # save trained models
     filename = tag + "TD3_{}_{}".format(env_name, random_seed)
@@ -104,5 +104,5 @@ def main(tag = ""):
     print("Done!")
 
 if __name__ == '__main__':
-	main(tag = "v1")
+	main(tag = "v3")
 
