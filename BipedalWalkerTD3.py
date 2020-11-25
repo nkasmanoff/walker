@@ -1,3 +1,9 @@
+"""
+Implementation of TD3 Algorithm on Open AI gym environment BipedalWalkerHardcore v3
+
+
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,13 +14,12 @@ import gym
 from PIL import Image
 
 
-from models import Actor2 as Actor
-from models import Critic2 as Critic # or whatever AC variants are made. 
-
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+
+
 class ReplayBuffer:
-    def __init__(self, max_size=5e3):
+    def __init__(self, max_size=5e5):
         self.buffer = []
         self.max_size = int(max_size)
         self.size = 0
@@ -45,6 +50,48 @@ class ReplayBuffer:
     
 
 
+
+
+class Actor(nn.Module):
+    def __init__(self, state_dim, action_dim, max_action):
+        super(Actor, self).__init__()
+        
+        self.l1 = nn.Linear(state_dim, 400)
+        self.l2 = nn.Linear(400, 300)
+        self.l3 = nn.Linear(300, action_dim)
+        
+        self.max_action = max_action
+        
+    def forward(self, state):
+        """
+        Pass the state through mlp, and emit a value between -1 and 1, scaled by max action size. 
+        
+        Returns the action to take (along each dim of action dim)
+        """
+        a = F.relu(self.l1(state))
+        a = F.relu(self.l2(a))
+        a = torch.tanh(self.l3(a)) * self.max_action
+        return a
+        
+class Critic(nn.Module):
+    def __init__(self, state_dim, action_dim):
+        super(Critic, self).__init__()
+        
+        self.l1 = nn.Linear(state_dim + action_dim, 400)
+        self.l2 = nn.Linear(400, 300)
+        self.l3 = nn.Linear(300, 1)
+        
+    def forward(self, state, action):
+        """
+        Returns a Q(!) value for the network, given a state action input. The input is concatted and passed through an MLP
+        of roughly the same size as before, but different input dim to account for the action(s) taken. 
+        """
+        state_action = torch.cat([state, action], 1)
+        
+        q = F.relu(self.l1(state_action))
+        q = F.relu(self.l2(q))
+        q = self.l3(q)
+        return q
     
 class TD3:
     def __init__(self, lr, state_dim, action_dim, max_action):
@@ -176,3 +223,90 @@ class TD3:
         
         
         
+
+######### Hyperparameters #########
+env_name = "BipedalWalkerHardcore-v3"
+
+log_interval = 100           # print avg reward after interval
+random_seed = 0
+gamma = 0.99                # discount for future rewards
+batch_size = 32          # num of transitions sampled from replay buffer
+lr = 0.0005
+exploration_noise = 0.1 
+polyak = 0.995              # target policy update parameter (1-tau)
+policy_noise = 0.2          # target policy smoothing noise
+noise_clip = 0.5
+policy_delay = 2            # delayed policy updates parameter
+max_episodes = 30000         # max num of episodes
+max_timesteps = 5000        # max timesteps in one episode
+directory = "preTrained/" # save trained models
+filename = "V2TD3_{}_{}".format(env_name, random_seed)
+#RENDER_INTERVAL = 50
+###################################
+
+env = gym.make(env_name)
+state_dim = env.observation_space.shape[0]
+action_dim = env.action_space.shape[0]
+max_action = float(env.action_space.high[0])
+
+policy = TD3(lr, state_dim, action_dim, max_action)
+replay_buffer = ReplayBuffer()
+
+if random_seed:
+    print("Random Seed: {}".format(random_seed))
+    env.seed(random_seed)
+    torch.manual_seed(random_seed)
+    np.random.seed(random_seed)
+
+# logging variables:
+avg_reward = 0
+ep_reward = 0
+log_f = open(env_name + "V2_log.txt","w+")
+# training procedure:
+for episode in range(1, max_episodes+1):
+    state = env.reset()
+    for t in range(max_timesteps):
+        # select action, add exploration noise, and clip if too big.:
+        action = policy.select_action(state)
+        action = action + np.random.normal(0, exploration_noise, size=env.action_space.shape[0])
+        action = action.clip(env.action_space.low, env.action_space.high)
+
+        # take action in env:
+        next_state, reward, done, _ = env.step(action) # some x dim vector, with each value bounded
+        replay_buffer.add((state, action, reward, next_state, float(done))) # save to replay buffer, we'll see where this goes
+        state = next_state # turn into next state, used for next timestep in env. 
+
+        avg_reward += reward #update rolling reward
+        ep_reward += reward #update episode reward
+
+        # if episode is done then update policy:
+        if done or t==(max_timesteps-1): # time to update the policy!
+            policy.update(replay_buffer, t, batch_size, gamma, polyak, policy_noise, noise_clip, policy_delay)
+            break
+
+    # logging updates:
+    log_f.write('{},{}\n'.format(episode, ep_reward))
+    log_f.flush()
+    ep_reward = 0
+
+    # if avg reward > 300 then save and stop traning:
+    if (avg_reward/log_interval) >= 300:
+        print("########## Solved! ###########")
+        name = filename + '_solved'
+        policy.save(directory, name)
+        log_f.close()
+        break
+
+    if episode > 500:
+        policy.save(directory, filename)
+
+    # print avg reward every log interval:
+    if episode % log_interval == 0:
+        avg_reward = int(avg_reward / log_interval)
+        print("Episode: {}\tAverage Reward: {}".format(episode, avg_reward))
+        avg_reward = 0
+
+  
+
+print("Done!")
+
